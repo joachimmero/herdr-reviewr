@@ -13,6 +13,7 @@ pub enum Action {
     PrevFile,
     Collapse,
     Expand,
+    ExpandDown,
     PageUp,
     PageDown,
     HalfUp,
@@ -130,6 +131,11 @@ impl Key {
         Self { ctrl: false, alt: false, code }
     }
 
+    /// An `alt+<named key>` chord.
+    pub const fn alt_named(code: KeyCode) -> Self {
+        Self { ctrl: false, alt: true, code }
+    }
+
     /// The `ctrl+`/`alt+` prefixing both spellings share.
     fn prefixed(self, base: String) -> String {
         match (self.ctrl, self.alt) {
@@ -151,7 +157,7 @@ impl Key {
 }
 
 /// Every action with its config name and default keys, the one table the keymap derives from.
-const ACTIONS: [(Action, &str, &[Key]); 44] = [
+const ACTIONS: [(Action, &str, &[Key]); 45] = [
     (Action::Down, "down", &[Key::plain('j'), Key::named(KeyCode::Down)]),
     (Action::Up, "up", &[Key::plain('k'), Key::named(KeyCode::Up)]),
     (Action::NextHunk, "next-hunk", &[Key::plain(']')]),
@@ -160,6 +166,7 @@ const ACTIONS: [(Action, &str, &[Key]); 44] = [
     (Action::PrevFile, "prev-file", &[Key::plain('F')]),
     (Action::Collapse, "collapse", &[Key::named(KeyCode::Left)]),
     (Action::Expand, "expand", &[Key::named(KeyCode::Right)]),
+    (Action::ExpandDown, "expand-down", &[Key::alt_named(KeyCode::Right)]),
     (Action::PageUp, "page-up", &[Key::named(KeyCode::PageUp)]),
     (Action::PageDown, "page-down", &[Key::named(KeyCode::PageDown)]),
     (Action::HalfUp, "half-up", &[Key::ctrl('u')]),
@@ -328,6 +335,7 @@ mod tests {
         assert_eq!(keymap.hint(Action::Send), Key::plain('s'));
         assert_eq!(keymap.hint(Action::TabPr), Key::plain('3'));
         assert_eq!(keymap.action_for(Key::named(KeyCode::Right)), Some(Action::Expand));
+        assert_eq!(keymap.action_for(Key::alt_named(KeyCode::Right)), Some(Action::ExpandDown));
         assert_eq!(keymap.action_for(Key::named(KeyCode::Left)), Some(Action::Collapse));
         assert_eq!(keymap.action_for(Key::named(KeyCode::Down)), Some(Action::Down));
         assert_eq!(keymap.action_for(Key::named(KeyCode::Up)), Some(Action::Up));

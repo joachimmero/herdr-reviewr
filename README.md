@@ -128,6 +128,7 @@ The keys below are defaults. You can rebind every action, even to several keys a
 | `Ctrl+U` `Ctrl+D` | Move a half-page |
 | `Tab` | Switch focus |
 | `→` `←` | Expand / collapse, or scroll sideways |
+| `Alt+→` · `Alt`+click | Expand a fold onto its last line, holding the lines below in place |
 | `/` | Search files and code |
 | `Ctrl+F` | Find in file |
 | `:` | Jump to a line number (`:0` first, `:$` last) |
@@ -361,6 +362,7 @@ The action names and their defaults:
 | `scope-uncommitted` / `scope-branch` / `scope-last-turn` / `scope-commits` | `u` / `b` / `t` / `g` |
 | `base-pick` / `commit-pick` | `B` / `G` |
 | `tab-changes` / `tab-all-files` / `tab-pr` | `1` / `2` / `3` |
+| `expand-down` | `alt+right` |
 | `wrap` | `w` |
 | `rendered` | `m` |
 | `navigator-position` | `p` |

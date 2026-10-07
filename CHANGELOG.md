@@ -6,6 +6,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Expand a fold down**: `alt+→` or an `alt`-click opens a fold with the cursor on its last line, and every line below it stays where it was on screen, so reading carries on downward. Rebind it as `expand-down`.
+
 ## [0.46.0] — 2026-10-06
 
 ### Changed

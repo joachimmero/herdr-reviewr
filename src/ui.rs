@@ -1790,6 +1790,7 @@ fn render_diff_view(frame: &mut Frame, app: &App, area: Rect) {
 
     let gutter_w = gutter_for(&app.diff);
     let expand_hint = app.keymap().hint(crate::keymap::Action::Expand).label();
+    let expand_down_hint = app.keymap().hint(crate::keymap::Action::ExpandDown).label();
     let see = app.keymap().hint(crate::keymap::Action::Rendered).label();
     let layout = RowLayout {
         gutter_w,
@@ -1800,6 +1801,7 @@ fn render_diff_view(frame: &mut Frame, app: &App, area: Rect) {
         pal: p,
         find: app.find_query().map(|q| (q, crate::app::find_case_sensitive(q))),
         expand_hint: &expand_hint,
+        expand_down_hint: &expand_down_hint,
         rendered: app.rendered_lines(),
         see: &see,
     };
@@ -1933,6 +1935,8 @@ struct RowLayout<'a> {
     find: Option<(&'a str, bool)>,
     /// The `expand` hint the cursor's fold row advertises, following a rebind.
     expand_hint: &'a str,
+    /// The `expand-down` hint the cursor's fold row advertises, following a rebind.
+    expand_down_hint: &'a str,
     /// The styled lines a rendered block's line paints, indexed by its `line`.
     rendered: &'a [Line<'static>],
     /// The `rendered` key's label a don't-render marker names, following a rebind.
@@ -1963,6 +1967,7 @@ fn render_row(row: &Row, layout: RowLayout<'_>, state: RowState) -> Vec<Line<'st
         pal,
         find,
         expand_hint,
+        expand_down_hint,
         rendered,
         see,
     } = layout;
@@ -2027,7 +2032,10 @@ fn render_row(row: &Row, layout: RowLayout<'_>, state: RowState) -> Vec<Line<'st
     }
     if let Row::Fold { .. } = row {
         let label = if cursor {
-            format!("  ⋯  {} unmodified lines · {expand_hint} to expand", row.hidden())
+            format!(
+                "  ⋯  {} unmodified lines · {expand_hint} to expand · {expand_down_hint} to expand down",
+                row.hidden()
+            )
         } else {
             format!("  ⋯  {} unmodified lines", row.hidden())
         };
@@ -2653,6 +2661,7 @@ fn action_key_label(app: &App, action: FooterAction) -> (String, String) {
         A::DeleteComment => (hint(K::Delete), "delete"),
         A::JumpComment => (format!("{}/{}", hint(K::NextComment), hint(K::PrevComment)), "jump"),
         A::ExpandFold => (hint(K::Expand), "expand fold"),
+        A::ExpandFoldDown => (hint(K::ExpandDown), "expand down"),
         A::CrossFile { forward: true } => (hint(K::NextHunk), "next file"),
         A::CrossFile { forward: false } => (hint(K::PrevHunk), "prev file"),
         // The `move` band's pairs render as their two keys.
@@ -4503,6 +4512,7 @@ fn push_finding_quote(
             find: None,
             // Snippet rows never carry the cursor, so no fold ever shows the hint here.
             expand_hint: "",
+            expand_down_hint: "",
             rendered: &[],
             see: "",
         };

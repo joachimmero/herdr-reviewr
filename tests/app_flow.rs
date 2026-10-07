@@ -1288,6 +1288,61 @@ fn expanding_a_fold_keeps_the_viewport_still() {
     assert_eq!(app.diff_scroll, 0, "bottom-half fold grows downward");
 }
 
+/// 40 lines with lines 10 and 30 changed, so a 13-line fold sits between two hunks.
+fn two_hunk_repo() -> Repo {
+    use std::fmt::Write as _;
+    let r = Repo::init();
+    let mut old = String::new();
+    for i in 0..40 {
+        writeln!(old, "line {i}").unwrap();
+    }
+    r.write("big.rs", &old);
+    r.commit_all("init");
+    r.write("big.rs", &old.replace("line 10\n", "LINE 10\n").replace("line 30", "LINE 30"));
+    r
+}
+
+#[test]
+fn expanding_a_fold_down_lands_on_its_last_line_and_holds_the_rows_below() {
+    let r = two_hunk_repo();
+    let mut app = app_on(&r);
+    app.focus = Focus::Diff;
+    // The middle fold, in the bottom half of a 12-row viewport, where `expand` grows downward.
+    let fold = app.visible.iter().enumerate().filter(|(_, row)| row.hidden() > 0).nth(1).unwrap().0;
+    let below = app.visible[fold + 1].text();
+    app.diff_cursor = fold;
+    app.diff_scroll = 0;
+    let heights = vec![1usize; app.visible.len()];
+    app.expand_fold_down(&heights, |a| vec![1usize; a.visible.len()]);
+
+    assert_eq!(app.visible[app.diff_cursor].text(), "line 26", "cursor on the last revealed line");
+    let held = app.visible.iter().position(|row| row.text() == below).unwrap();
+    assert_eq!(held - app.diff_scroll, fold + 1, "the row below keeps its screen row");
+}
+
+#[test]
+fn alt_right_expands_a_fold_down_and_does_nothing_elsewhere() {
+    let r = two_hunk_repo();
+    let mut app = app_on(&r);
+    app.focus = Focus::Diff;
+    app.wrap = false;
+    let keymap = Keymap::default();
+    let area = Rect::new(0, 0, 120, 40);
+    let alt_right = KeyEvent::new(KeyCode::Right, KeyModifiers::ALT);
+
+    app.diff_cursor = app.visible.iter().position(|row| row.hidden() == 0).unwrap();
+    let rows = app.visible.len();
+    handle_key(&mut app, alt_right, area, &keymap).unwrap();
+    assert_eq!((app.visible.len(), app.h_scroll), (rows, 0), "off a fold, `alt+→` is inert");
+
+    app.diff_cursor = app.visible.iter().position(|row| row.hidden() > 0).unwrap();
+    let hidden = app.visible[app.diff_cursor].hidden();
+    let last = app.diff_cursor + hidden - 1;
+    handle_key(&mut app, alt_right, area, &keymap).unwrap();
+    assert_eq!(app.visible.len(), rows + hidden - 1, "the fold expanded");
+    assert_eq!(app.diff_cursor, last, "onto its last line");
+}
+
 #[test]
 fn a_comment_through_a_fold_anchors_to_gits_line_and_survives_a_poll() {
     let r = folded_repo();

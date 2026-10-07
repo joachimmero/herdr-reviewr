@@ -1904,6 +1904,10 @@ fn dispatch_key(app: &mut App, key: KeyEvent, area: Rect, keymap: &Keymap) -> Re
                 let heights = ui::diff_row_heights(app, area);
                 app.expand_fold(&heights, ui::diff_viewport_height(area, app));
             }
+            K::ExpandDown if app.on_fold() => {
+                let heights = ui::diff_row_heights(app, area);
+                app.expand_fold_down(&heights, |app| ui::diff_row_heights(app, area));
+            }
             K::Expand => app.scroll_h(8),
             K::Collapse => app.scroll_h(-8),
             K::PageDown => app.move_cursor(PAGE)?,
@@ -1943,7 +1947,7 @@ fn dispatch_key(app: &mut App, key: KeyEvent, area: Rect, keymap: &Keymap) -> Re
             K::GotoLine => app.open_line(),
             K::Keys => app.toggle_keys(),
             // Inert here; `quit-discard` only answers the quit question.
-            K::Delete | K::OpenPr | K::QuitDiscard => {}
+            K::Delete | K::ExpandDown | K::OpenPr | K::QuitDiscard => {}
         }
         return Ok(());
     }
@@ -1955,6 +1959,15 @@ fn dispatch_key(app: &mut App, key: KeyEvent, area: Rect, keymap: &Keymap) -> Re
         _ => {}
     }
     Ok(())
+}
+
+/// Expand the fold a click put the cursor on; `alt` expands it down onto its last line.
+fn expand_clicked_fold(app: &mut App, m: MouseEvent, area: Rect, heights: &[usize]) {
+    if m.modifiers.contains(KeyModifiers::ALT) {
+        app.expand_fold_down(heights, |app| ui::diff_row_heights(app, area));
+    } else {
+        app.expand_fold(heights, ui::diff_viewport_height(area, app));
+    }
 }
 
 /// Cancel pointer state whose coordinates belonged to the old terminal geometry.
@@ -2325,7 +2338,7 @@ fn perform_click(
                 if let Surface::Card { comment } = drag.surface {
                     app.target_comment_card(comment);
                 }
-                app.expand_fold(heights, ui::diff_viewport_height(area, app));
+                expand_clicked_fold(app, m, area, heights);
             }
         }
     }
@@ -2574,7 +2587,7 @@ fn dispatch_mouse(
                     app.target_comment_card(comment);
                 }
                 // A click on a fold marker expands it, keeping the viewport still.
-                app.expand_fold(heights, ui::diff_viewport_height(area, app));
+                expand_clicked_fold(app, m, area, heights);
             }
         }
         MouseEventKind::Drag(MouseButton::Left) if app.gutter_drag() => {

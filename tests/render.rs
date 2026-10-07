@@ -297,6 +297,8 @@ fn the_fold_hint_names_the_expand_binding() {
 
     let out = render(&app);
     assert!(out.contains("→ expand"), "the fold hint names the `→` key");
+    assert!(out.contains("alt+→ expand down"), "the footer offers `expand-down` on a fold");
+    assert!(out.contains("alt+→ to expand down"), "the fold row names `expand-down` too");
     assert!(!out.contains("⏎ expand"), "no stale enter hint remains");
 
     // A rebound `expand` renames the fold label and the footer hint alike.
@@ -305,7 +307,10 @@ fn the_fold_hint_names_the_expand_binding() {
     app.set_plugin_config(herdr_reviewr::config::plugin_config_in(dir.path()).unwrap());
     let out = render(&app);
     assert!(out.contains("x expand"), "the rebound key names the hint:\n{out}");
-    assert!(!out.contains("→ expand"), "the freed arrow leaves the hint");
+    assert!(
+        !out.contains("· → to expand") && !out.contains("→ expand fold"),
+        "the freed arrow leaves the hint"
+    );
 }
 
 fn edited_app() -> App {

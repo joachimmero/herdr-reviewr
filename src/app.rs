@@ -493,6 +493,7 @@ pub enum FooterAction {
     DeleteComment,
     JumpComment,
     ExpandFold,
+    ExpandFoldDown,
     /// Take the armed crossing by repeating its hunk step.
     CrossFile {
         forward: bool,
@@ -1715,6 +1716,25 @@ impl App {
             self.diff_scroll += shift; // hold the content below the fold; grow upward
         }
         // bottom half: leave diff_scroll — the content above the fold stays put, grow downward
+    }
+
+    /// Expand the fold under the cursor for good onto its last line, holding every row below it.
+    pub fn expand_fold_down(
+        &mut self,
+        heights: &[usize],
+        heights_after: impl FnOnce(&Self) -> Vec<usize>,
+    ) {
+        let fold_idx = self.diff_cursor;
+        let Some(anchor) = self.visible.get(fold_idx).and_then(Row::fold_anchor) else {
+            return;
+        };
+        let last = fold_idx + self.visible[fold_idx].hidden() - 1;
+        let through_fold: usize =
+            heights.get(self.diff_scroll..=fold_idx).map_or(0, |s| s.iter().sum());
+        self.expanded_folds.insert(anchor);
+        self.rebuild_visible();
+        self.diff_scroll = scroll_ending_at(&heights_after(self), last, through_fold);
+        self.diff_cursor = last;
     }
 
     /// `path`'s sides from the landed build's record: a notice, or one `git diff` of the scope's ends.
@@ -4540,6 +4560,7 @@ impl App {
             }
         } else if self.on_fold() {
             out.push((A::ExpandFold, Primary));
+            out.push((A::ExpandFoldDown, Do));
         } else if self.select_anchor.is_some() {
             out.push((A::Comment, Primary));
             out.push((A::ClearSelection, Do));
@@ -5151,6 +5172,18 @@ fn clamp_scroll(base: usize, delta: isize, max: usize) -> usize {
     base.min(max).saturating_add_signed(delta).min(max)
 }
 
+/// The scroll that puts the bottom of row `last` `rows` display rows below the viewport top,
+/// or as near as whole rows allow without scrolling `last` out of view.
+fn scroll_ending_at(heights: &[usize], last: usize, rows: usize) -> usize {
+    let mut scroll = last;
+    let mut filled = heights.get(last).copied().unwrap_or(1);
+    while scroll > 0 && filled + heights[scroll - 1] <= rows {
+        scroll -= 1;
+        filled += heights[scroll];
+    }
+    scroll
+}
+
 /// Put change marks on fresh rendered rows: bars, hidden counts, and a row per marker.
 fn mark_rendered(
     rows: &mut Vec<Row>,
@@ -5371,6 +5404,17 @@ mod tests {
     use crate::test_support::test_repo;
     use crate::world::{PickStatus, PickVerdict};
     use std::path::PathBuf;
+
+    #[test]
+    fn scroll_ending_at_fills_the_rows_with_whole_wrapped_lines() {
+        use super::scroll_ending_at;
+        let heights = [1, 2, 1, 3, 1];
+        assert_eq!(scroll_ending_at(&heights, 3, 4), 2, "an exact fit");
+        // Rows 1..=3 would overshoot 5, so row 3's bottom lands a row higher instead.
+        assert_eq!(scroll_ending_at(&heights, 3, 5), 2);
+        assert_eq!(scroll_ending_at(&heights, 3, 1), 3, "a taller row still stays on screen");
+        assert_eq!(scroll_ending_at(&heights, 3, 99), 0, "never past the top");
+    }
 
     #[test]
     fn a_pr_settled_highlight_survives_a_kept_snapshot_and_blanks_on_a_replace() {
