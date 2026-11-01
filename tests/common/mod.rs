@@ -14,6 +14,25 @@ use tempfile::TempDir;
 #[allow(unused_imports)]
 pub use fixture::fixture;
 
+/// A directory symlink, or `false` when Windows withholds `SeCreateSymbolicLinkPrivilege`.
+pub fn try_symlink_dir(original: impl AsRef<Path>, link: impl AsRef<Path>) -> bool {
+    let original = original.as_ref();
+    let link = link.as_ref();
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(original, link).unwrap();
+        true
+    }
+    #[cfg(windows)]
+    {
+        match std::os::windows::fs::symlink_dir(original, link) {
+            Ok(()) => true,
+            Err(error) if error.raw_os_error() == Some(1314) => false,
+            Err(error) => panic!("symlink_dir {}: {error}", link.display()),
+        }
+    }
+}
+
 /// The fake herdr, built here once per test process: `cargo test --test` builds no examples.
 pub fn fake_herdr() -> &'static Path {
     static BIN: OnceLock<PathBuf> = OnceLock::new();

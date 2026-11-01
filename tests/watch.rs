@@ -8,7 +8,7 @@ use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
-use common::Repo;
+use common::{Repo, try_symlink_dir};
 use herdr_reviewr::turn::{TurnFeed, TurnNews};
 use herdr_reviewr::wake::{Waker, channel};
 use herdr_reviewr::watch::{Batch, GitChange, Watch, WatchEvent};
@@ -449,10 +449,9 @@ fn a_link_to_a_folder_is_asked_as_a_file_and_never_fails_the_batch() {
         r.write(&format!("src/f{i}.rs"), "x\n");
     }
     r.write("debug.log", "x\n");
-    #[cfg(unix)]
-    std::os::unix::fs::symlink(r.path().join("real"), r.path().join("lnk")).unwrap();
-    #[cfg(windows)]
-    std::os::windows::fs::symlink_dir(r.path().join("real"), r.path().join("lnk")).unwrap();
+    if !try_symlink_dir(r.path().join("real"), r.path().join("lnk")) {
+        return;
+    }
     let batch = w.next();
     assert!(batch.worktree.contains("lnk"), "the link lists: {batch:?}");
     assert!(!batch.files.contains("debug.log"), "an ignored file stays out of search");

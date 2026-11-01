@@ -1358,10 +1358,9 @@ mod tests {
         std::fs::write(dir.path().join(".gitignore"), "*.log\n").unwrap();
         std::fs::create_dir(dir.path().join("d")).unwrap();
         let link = dir.path().join("link");
-        #[cfg(unix)]
-        std::os::unix::fs::symlink(dir.path().join("d"), &link).unwrap();
-        #[cfg(windows)]
-        std::os::windows::fs::symlink_dir(dir.path().join("d"), &link).unwrap();
+        if !crate::test_support::try_symlink_dir(dir.path().join("d"), &link) {
+            return;
+        }
         let unknown: BTreeSet<String> = ["a.log", "link/x"].map(String::from).into();
         let batch = crate::git::check_ignore(dir.path(), unknown.iter().map(String::as_str));
         assert_eq!(batch, None, "a path beyond a symbolic link fails the whole run");

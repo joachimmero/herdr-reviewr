@@ -29,7 +29,7 @@ build:
 run:
     cargo run
 
-# build release and install the binary into bin/ for `herdr plugin link`
+# build release and install the binary into bin/ for `herdr plugin link` (`.exe` on Windows)
 install:
     cargo build --release
     mkdir -p bin

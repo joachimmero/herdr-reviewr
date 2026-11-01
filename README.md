@@ -528,11 +528,15 @@ at `bin/herdr-reviewr`:
 ```bash
 git clone https://github.com/persiyanov/herdr-reviewr
 cd herdr-reviewr
-just install   # build release → bin/herdr-reviewr, ad-hoc re-signed on macOS
-herdr plugin link .
+scripts/link.sh
 ```
 
-After every `just install`, toggle the reviewr pane off and on. An open pane keeps running the old
+On Windows, run it from Git Bash. That builds the release binary with `cargo`, puts it at
+`bin/herdr-reviewr` (`.exe` on Windows), puts `herdr-reviewr` on `PATH` through `~/.local/bin`,
+and runs `herdr plugin link`. On Windows it also adds that folder to the user PATH.
+
+`just install` is the same build into `bin/` without linking the plugin (ad-hoc re-signed on
+macOS). After every rebuild, toggle the reviewr pane off and on. An open pane keeps running the old
 process. The loop only works while the plugin is linked: a `github:…` source in
 `herdr plugin list` runs a downloaded binary that local rebuilds never touch. Switch with:
 

@@ -403,10 +403,9 @@ mod tests {
         // A link to a folder elsewhere is not followed, as fff's own scan does not.
         let elsewhere = tempfile::tempdir().unwrap();
         std::fs::write(elsewhere.path().join("far.rs"), "f\n").unwrap();
-        #[cfg(unix)]
-        std::os::unix::fs::symlink(elsewhere.path(), dir.path().join("data")).unwrap();
-        #[cfg(windows)]
-        std::os::windows::fs::symlink_dir(elsewhere.path(), dir.path().join("data")).unwrap();
+        if !crate::test_support::try_symlink_dir(elsewhere.path(), dir.path().join("data")) {
+            return;
+        }
         engine.apply(&["data".to_string()]);
         let guard = engine.shared.read().unwrap();
         let picker = guard.as_ref().unwrap();

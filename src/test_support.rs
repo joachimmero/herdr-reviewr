@@ -1,5 +1,26 @@
 //! Fixtures the crate's unit tests share.
 
+use std::path::Path;
+
+/// A directory symlink, or `false` when Windows withholds `SeCreateSymbolicLinkPrivilege`.
+pub(crate) fn try_symlink_dir(original: impl AsRef<Path>, link: impl AsRef<Path>) -> bool {
+    let original = original.as_ref();
+    let link = link.as_ref();
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(original, link).unwrap();
+        true
+    }
+    #[cfg(windows)]
+    {
+        match std::os::windows::fs::symlink_dir(original, link) {
+            Ok(()) => true,
+            Err(error) if error.raw_os_error() == Some(1314) => false,
+            Err(error) => panic!("symlink_dir {}: {error}", link.display()),
+        }
+    }
+}
+
 /// A fresh repository on `main` with an identity, and a runner for git in it.
 pub(crate) fn test_repo() -> (tempfile::TempDir, impl Fn(&[&str]) -> String) {
     let dir = tempfile::tempdir().unwrap();

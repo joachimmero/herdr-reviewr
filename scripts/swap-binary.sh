@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# swap-binary.sh <src> <dst>: replace an executable through a fresh inode and re-sign it, since
-# macOS SIGKILLs a binary overwritten in place at every launch. `just install` and qa-install use it.
+# swap-binary.sh <src> <dst>: replace through a fresh inode (macOS SIGKILL) and re-sign on Darwin.
+# On Windows, a stem argument resolves to the `.exe` Cargo writes.
 set -euo pipefail
 
 src="$1"
 dst="$2"
+if [ "${OS-}" = Windows_NT ]; then
+  case "$src" in *.exe) ;; *) [ -f "$src.exe" ] && src="$src.exe" ;; esac
+  case "$dst" in *.exe) ;; *) dst="$dst.exe" ;; esac
+fi
 [ -f "$src" ] || { echo "swap-binary: missing source $src" >&2; exit 1; }
 
 rm -f "$dst"
